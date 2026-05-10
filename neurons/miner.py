@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import time
+from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Tuple
@@ -119,6 +120,9 @@ class Miner(BaseMinerNeuron):
         self.manifest_compliance = evaluate_manifest_compliance(self.model_manifest)
         self.manifest_digest = manifest_digest(self.model_manifest)
         self._log_manifest_startup(repo_root)
+        
+        # Dynamic threshold tracking (last 15 requests, clamped 0.42-0.46)
+        self.recent_scores = deque(maxlen=15)
 
     def _log_manifest_startup(self, repo_root: Path) -> None:
         bt.logging.info(
@@ -136,6 +140,28 @@ class Miner(BaseMinerNeuron):
             f"inference_mode={self.model_manifest.get('inference_mode', '')}"
         )
         bt.logging.info(f"Project root: {repo_root}")
+
+    def _get_dynamic_threshold(self, scores: List[float]) -> float:
+        """Calculate dynamic threshold from recent score distribution.
+        
+        Uses 65th percentile of recent scores (last 15 requests),
+        clamped to [0.42, 0.46] range.
+        """
+        import statistics
+        
+        # Add current request scores to history
+        self.recent_scores.extend(scores)
+        
+        # Need at least 3 scores to estimate threshold
+        if len(self.recent_scores) < 3:
+            threshold = 0.44  # Default middle of range
+        else:
+            # Use 65th percentile of all recent scores
+            threshold = statistics.quantiles(list(self.recent_scores), n=20)[12]  # 65th percentile
+        
+        # Clamp to user-specified range
+        threshold = max(0.42, min(0.46, threshold))
+        return threshold
 
     async def forward(self, synapse: DetectionSynapse) -> DetectionSynapse:
         chunks: List[List[dict]] = synapse.chunks or []
@@ -159,7 +185,10 @@ class Miner(BaseMinerNeuron):
         bt.logging.debug(f"[miner] Received {len(chunks)} chunk(s); first sizes={_preview(chunk_sizes)}")
 
         synapse.risk_scores = scores
-        synapse.predictions = [s >= 0.5 for s in scores]
+        
+        # Use dynamic threshold clamped to [0.42, 0.46]
+        threshold = self._get_dynamic_threshold(scores)
+        synapse.predictions = [s >= threshold for s in scores]
         synapse.model_manifest = dict(self.model_manifest)
 
         bt.logging.debug(
