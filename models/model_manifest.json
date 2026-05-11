@@ -6,7 +6,7 @@
   "framework": "python-heuristic",
   "license": "MIT",
   "repo_url": "https://github.com/tomkaba/poker44-miner-gen10heur1",
-  "repo_commit": "7718e979f0b70b20b412e5f9da58d90884cd721b",
+  "repo_commit": "206ac6daee9d066ad8233866401bacb957ab8c4e",
   "inference_mode": "remote",
   "training_data_statement": "No validator-private data used.",
   "data_attestation": "This miner does not train on validator-private human data.",
@@ -22,6 +22,6 @@
     "poker44/utils/model_manifest.py",
     "poker44/validator/synapse.py"
   ],
-  "implementation_sha256": "f4dbf9ebcb88dc55ab3ecf12320cd9ec0d3fa5bc2a472d83e20ccb09b9490245",
+  "implementation_sha256": "762b0607888b9d4fa289155f8f798f5d2c0de98d77a566e20dc1dd490631178e",
   "notes": "Gen10heur1 profile-based heuristic miner."
 }

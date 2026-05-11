@@ -91,7 +91,7 @@ class Miner(BaseMinerNeuron):
 
         try:
             git_commit = subprocess.check_output(
-                ["git", "-C", str(repo_root), "rev-parse", "HEAD"],
+                ["git", "-C", str(repo_root), "rev-parse", "--short", "HEAD"],
                 stderr=subprocess.DEVNULL,
                 timeout=5,
             ).decode().strip()
@@ -190,6 +190,7 @@ class Miner(BaseMinerNeuron):
         threshold = self._get_dynamic_threshold(scores)
         synapse.predictions = [s >= threshold for s in scores]
         synapse.model_manifest = dict(self.model_manifest)
+        bt.logging.info(f"[miner] Response manifest={synapse.model_manifest}")
 
         bt.logging.debug(
             f"[DEBUG] Before sending: synapse.risk_scores={synapse.risk_scores}, "
